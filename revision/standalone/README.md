@@ -134,15 +134,90 @@ arrays for one CIFAR-100 S20 run at `sample_id` ascending order:
 All 45,000 entries per array are the run's training split (the 45k/5k split of
 the 50k CIFAR-100 train set), in the same order as the frozen evaluation table.
 
+## Results (completed run, B = 1000, DINO density, 60 cells)
+
+Run locally: 280 s wall, 8 workers.
+
+```
+quality = dino_density
+cells   = 60   (6 eligible detectors x 10 seeds)
+  auc_global  = 0.7663      auc_primary = 0.7664      delta = -0.0001
+  coverage    = 0.8049      failed replicates = 0
+
+intervals entirely above chance : 60/60
+intervals entirely below chance :  0/60
+```
+
+Marginal detail: the smallest `ci_low` over all 60 cells is **0.6579**, i.e. the
+closest any cell comes to chance is 0.158 AUROC away. The adaptive top-up rule
+(raise a cell to B = 2000 if `ci_low < 0.52`) therefore never fires: **B = 1000 is
+sufficient for every cell** and no cell needed a larger budget.
+
+Per detector (10 seeds each):
+
+| detector | AUC_global | AUC_primary | delta | min ci_low | mean coverage |
+|---|---|---|---|---|---|
+| aum | 0.7127 | 0.7396 | -0.0269 | 0.7074 | 0.805 |
+| combined | 0.6965 | 0.6838 | +0.0126 | 0.6579 | 0.805 |
+| confidence | 0.7375 | 0.7350 | +0.0025 | 0.7152 | 0.805 |
+| confident_learning | 0.8162 | 0.8132 | +0.0030 | 0.7907 | 0.805 |
+| ema_loss | 0.8043 | 0.8004 | +0.0040 | 0.7774 | 0.805 |
+| neighbor | 0.8308 | 0.8264 | +0.0044 | 0.8035 | 0.805 |
+
+Consistency with the frozen table: `auc_global` reproduced to 0.000000 and
+`auc_primary` to within 0.000167 (tie handling), so this run is on the same
+estimator as the reported point estimates.
+
+Point reversals (AUC_primary < 0.5): **0/60**.
+Interval-supported reversals (ci_high < 0.5): **0/60**.
+
+### Exact estimator vs the fast-path intervals on the same cells
+
+| | mean ci_low | mean ci_high | mean width |
+|---|---|---|---|
+| exact primary (this run) | 0.7533 | 0.7857 | 0.0324 |
+| fast path (original grid) | 0.7496 | 0.7777 | 0.0280 |
+
+The exact intervals sit slightly higher and are ~16% wider. Both agree on the
+verdict (60/60 above chance), so the original conclusion was not an artifact of
+the estimator mismatch -- but the reported intervals are now the right ones.
+
 ## Manuscript consequence
 
-If every eligible interval lies entirely above chance, the conservative wording
+With `n_ci_entirely_below_chance == 0` and
+`n_ci_entirely_above_chance == n_eligible_cells == 60`, the interval-supported
+sentence is licensed:
 
-> no interval-supported reversal was observed
+> For DINO-density conditioning, all 60 eligible detector--seed evaluations with
+> global AUROC at least 0.5 had exact-primary-estimator 95\% bootstrap intervals
+> entirely above chance.
 
-can be replaced by
+Scope it to DINO density. The other four label-free variables (full-pool density,
+KNN distance, augmentation consistency, random) remain valid for the proxy
+gradient, the heatmap, the support analysis and descriptive point comparisons,
+but their intervals in the original grid come from the fast statistic and should
+not carry a formal inferential claim.
 
-> all N eligible primary-estimator intervals remained entirely above chance
+## Data archive
 
-using the exact N from `summary.json`. Only write that if
-`n_ci_entirely_below_chance == 0` and `n_ci_entirely_above_chance == n_eligible_cells`.
+`c100s20_exact_bootstrap_inputs_v1.tar.gz`
+
+| | |
+|---|---|
+| size | 44,717,471 bytes |
+| SHA256 | `bc080a779813722ae1c75a3dfa8d74dc71a5103e0d2903bfff61bb5159b3640d` |
+| contents | `data/seed0.npz` … `data/seed9.npz`, 22 arrays each, 45,000 entries per array |
+| generation | payloads assembled by `revq.prepare` at commit `1584a60`; archived 2026-09-16 |
+| seed mapping | `seedN.npz` is the CIFAR-100 S20 run with run seed N; the run seed drives both the noise realization and the 45k/5k split |
+| sample_id convention | entries are in ascending `sample_id` order over the run's 45,000 training examples; identical ordering across every array and every covariate |
+| noisy counts | 8861–9156 per seed (realized rate 0.1969–0.2035) |
+
+Array names: `mask`, `y_observed`, `sample_ids`, and `sig__<name>` for
+`combined`, `combined_cl`, `ema_loss`, `confidence`, `aum`, `forgetting`,
+`neighbor`, `confident_learning`, `knn_agreement`, `proto_margin`,
+`dino_density`, `dino_density_fullpool`, `dino_knndist`, `dino_augcons`,
+`dino_augcons_sd`, `native_density`, `random`.
+
+> The archive contains derived masks, detector and proxy scores, observed labels
+> and sample identifiers required to reproduce the C100-S20 bootstrap audit; it
+> does not contain CIFAR image data.

@@ -1,0 +1,15 @@
+{
+  "B": 1000,
+  "ci": 0.95,
+  "n_cells": 60,
+  "n_eligible_cells": 60,
+  "estimator": "pipeline_primary_matching_rule",
+  "eligibility_rule": "global AUROC >= 0.5",
+  "n_ci_entirely_above_chance": 60,
+  "n_ci_entirely_below_chance": 0,
+  "n_cells_with_failed_replicates": 0,
+  "max_failed_replicates": 0,
+  "mean_coverage_primary": 0.8048911747650561,
+  "wall_seconds": 279.6,
+  "command": "exact_bootstrap_c100s20.py --B 1000 --workers 8 --quality dino_density --detectors combined,ema_loss,confidence,aum,neighbor,confident_learning --out ./out_c100s20_dino"
+}

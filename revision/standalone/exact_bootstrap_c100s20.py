@@ -323,6 +323,10 @@ def main() -> None:
                     help="comma list to restrict detectors")
     ap.add_argument("--all-detectors", action="store_true",
                     help="use every detector present instead of the eligible subset")
+    ap.add_argument("--quality", type=str, default="dino_density",
+                    help="comma list of conditioning variables; default is the "
+                         "single representative label-free variable used for the "
+                         "manuscript's interval claim ('all' for every one)")
     args = ap.parse_args()
 
     files = sorted(args.data.glob("seed*.npz"))
@@ -340,7 +344,14 @@ def main() -> None:
 
     probe = dict(np.load(next(iter(seeds.values())), allow_pickle=False))
     present = [k[len("sig__"):] for k in probe if k.startswith("sig__")]
-    qualities = [q for q in LABEL_FREE if q in present]
+    if args.quality.strip().lower() == "all":
+        qualities = [q for q in LABEL_FREE if q in present]
+    else:
+        want = [q.strip() for q in args.quality.split(",") if q.strip()]
+        missing = [q for q in want if q not in present]
+        if missing:
+            raise SystemExit(f"quality variable(s) not in the payload: {missing}")
+        qualities = want
     if args.detectors.strip():
         detectors = [d.strip() for d in args.detectors.split(",") if d.strip()]
     elif args.all_detectors:
