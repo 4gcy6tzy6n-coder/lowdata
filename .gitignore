@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Data, results and archives (large / regenerable)
+results/
+figures/
+*.parquet
+*.npy
+*.tar.gz
+*.zip
+revision/standalone/data/
+
+# Datasets
+~/.cache/quality_noise/
+
+# OS / LaTeX build artefacts
+.DS_Store
+*.aux
+*.log
+*.out
+*.toc
+*.bbl
+*.blg

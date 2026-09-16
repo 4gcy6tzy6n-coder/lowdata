@@ -1,0 +1,5 @@
+type: instance_dependent
+rate: 0.4        # target average flip rate
+seed: 0
+base_rate: 0.05  # overwritten by calibration toward `rate`
+max_rate: 0.8

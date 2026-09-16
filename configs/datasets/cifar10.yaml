@@ -1,0 +1,6 @@
+name: cifar10
+root: null          # null -> ~/.cache/quality_noise/cifar10; set on the server
+download: true      # lazy download at training time
+num_classes: 10
+val_frac: 0.1
+input_size: [3, 32, 32]

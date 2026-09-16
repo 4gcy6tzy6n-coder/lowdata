@@ -1,0 +1,6 @@
+name: cifar100n
+root: null          # server: ~/.cache/quality_noise/cifar100n (CIFAR-100_human.pt)
+download: false     # CIFAR-100 images cached; CIFAR-100_human.pt must be pre-placed
+num_classes: 100
+val_frac: 0.1
+input_size: [3, 32, 32]

@@ -1,0 +1,4 @@
+type: cifar100n_human   # CIFAR-100N human annotation (real noise, 100 classes)
+subset: human           # key into CIFAR-100_human.pt -> noisy_label
+rate: 0.4               # nominal only: realized rate is 0.402; never a training input
+seed: 0

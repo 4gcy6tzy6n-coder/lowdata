@@ -1,0 +1,56 @@
+# FINAL method configuration — reliability-aware soft governance v3 ("hard50").
+#
+# Recipe: unsupervised global Beta mixture on evidence E -> posterior eta
+#   -> reliability shrinkage -> calibrated soft weights, then HARD exclusion
+#   of the top (noise_rate x 0.5) posterior fraction (w=0) with the rest kept
+#   continuous. Chosen over v2 (pure calibrated) and hardauto (full-rate hard
+#   exclusion): hardauto wins low-noise settings but collapses at 40% noise;
+#   hard50 is the robust argmax across all four settings.
+#
+# Gate B (CIFAR-10, 3 seeds): acc +3.3/+1.8/+2.5/+3.9pt over CE on
+# sym20/sym40/asym20/asym40; hard-clean FSS ~0 on symmetric.
+dataset:
+  file: configs/datasets/cifar10.yaml
+  name: cifar10
+noise:
+  - file: configs/noise/symmetric.yaml
+    rate: 0.2
+  - file: configs/noise/symmetric.yaml
+    rate: 0.4
+  - file: configs/noise/asymmetric.yaml
+    rate: 0.2
+  - file: configs/noise/asymmetric.yaml
+    rate: 0.4
+model:
+  file: configs/models/resnet18.yaml
+seeds: [0, 1, 2]
+noise_seed: run
+stage: trace
+
+evidence:
+  recipe: ema_loss_forgetting_conflict
+  conflict_k: 20
+
+quality:
+  anchor_quantile: 0.8
+  knn_k: 20
+  stability_views: 2
+
+matched_auc:
+  eps: 0.1
+  max_clean_per_noisy: 5
+
+bootstrap:
+  n_resamples: 1000
+  ci: 0.95
+
+reliability:
+  method: knn_agreement
+  weight_mode: calibrated
+  hard_threshold: auto
+  hard_frac: 0.5
+
+mixture:
+  n_restarts: 5
+  max_iter: 1000
+  n_bins: 5

@@ -1,0 +1,51 @@
+# Gate A sweep: CIFAR-10 x {sym20, sym40, asym20, asym40} x 3 seeds.
+dataset:
+  file: configs/datasets/cifar10.yaml
+  name: cifar10
+noise:
+  - file: configs/noise/symmetric.yaml
+    rate: 0.2
+  - file: configs/noise/symmetric.yaml
+    rate: 0.4
+  - file: configs/noise/asymmetric.yaml
+    rate: 0.2
+  - file: configs/noise/asymmetric.yaml
+    rate: 0.4
+model:
+  file: configs/models/resnet18.yaml
+seeds: [0, 1, 2]
+noise_seed: run       # run: each seed gets a fresh noise realization (full replication)
+stage: trace          # trace | quality | detectability | estimator | weighted | baselines | report
+
+evidence:
+  recipe: ema_loss_forgetting_conflict
+  conflict_k: 20
+
+quality:
+  anchor_quantile: 0.8
+  knn_k: 20
+  stability_views: 2
+
+matched_auc:
+  eps: 0.1
+  max_clean_per_noisy: 5
+
+bootstrap:
+  n_resamples: 1000
+  ci: 0.95
+
+reliability:
+  method: knn_agreement
+
+mixture:
+  n_restarts: 5
+  max_iter: 1000
+  n_bins: 5
+
+baselines:
+  methods: [ce, small_loss, coteaching, coteaching_plus, jocor, elr, dividemix]
+  small_loss_keep_rate: 0.6
+  coteaching_keep_rate: 0.6
+  elr_lambda: 3.0
+  dividemix_T: 0.5
+  dividemix_lambda_u: 25.0

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quality-noise"
+version = "0.1.0"
+description = "Quality-conditioned label-noise detectability and reliability-aware soft governance"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.11",
+    "torchvision>=0.26",
+    "numpy>=2.0",
+    "pandas>=2.2",
+    "pyarrow>=16",
+    "scikit-learn>=1.5",
+    "PyYAML>=6",
+    "matplotlib>=3.8",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-cov>=5"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

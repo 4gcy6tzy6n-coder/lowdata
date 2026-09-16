@@ -1,0 +1,3 @@
+type: cifar10n_worse    # CIFAR-10N Worst-annotator noise (real noise, harder)
+subset: worse
+seed: 0

@@ -1,0 +1,28 @@
+dataset:
+  file: configs/datasets/cifar100n.yaml
+  name: cifar100n
+noise:
+- file: configs/noise/cifar100n_human.yaml
+model:
+  file: configs/models/resnet18.yaml
+seeds:
+- 0
+- 1
+- 2
+- 3
+- 4
+noise_seed: run
+stage: trace
+evidence:
+  recipe: ema_loss_forgetting_conflict
+  conflict_k: 20
+quality:
+  anchor_quantile: 0.8
+  knn_k: 20
+  stability_views: 0
+matched_auc:
+  eps: 0.1
+  max_clean_per_noisy: 5
+bootstrap:
+  n_resamples: 1000
+  ci: 0.95

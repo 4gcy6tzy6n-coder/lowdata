@@ -1,0 +1,6 @@
+name: cifar100
+root: null
+download: true
+num_classes: 100
+val_frac: 0.1
+input_size: [3, 32, 32]

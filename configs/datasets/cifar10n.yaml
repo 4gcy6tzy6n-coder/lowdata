@@ -1,0 +1,6 @@
+name: cifar10n
+root: null          # server: set to /autodl-pub/data or the cifar10n dir
+download: false     # CIFAR-10 images cached; annotation npz must be pre-placed
+num_classes: 10
+val_frac: 0.1
+input_size: [3, 32, 32]

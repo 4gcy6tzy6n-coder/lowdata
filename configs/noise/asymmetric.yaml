@@ -1,0 +1,4 @@
+type: asymmetric
+rate: 0.4
+seed: 0
+pair_map: null      # null -> DEFAULT_ASYMMETRIC_MAPS[dataset] (cifar10 / cifar100 superclass)

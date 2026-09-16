@@ -1,0 +1,43 @@
+# Variant: hard exclusion (auto) + sharpening the remaining soft weights
+# (weight_power 2). Closest continuous analogue of small-loss selection.
+dataset:
+  file: configs/datasets/cifar10.yaml
+  name: cifar10
+noise:
+  - file: configs/noise/symmetric.yaml
+    rate: 0.4
+  - file: configs/noise/asymmetric.yaml
+    rate: 0.4
+model:
+  file: configs/models/resnet18.yaml
+seeds: [0, 1, 2]
+noise_seed: run
+stage: weighted
+
+evidence:
+  recipe: ema_loss_forgetting_conflict
+  conflict_k: 20
+
+quality:
+  anchor_quantile: 0.8
+  knn_k: 20
+  stability_views: 2
+
+matched_auc:
+  eps: 0.1
+  max_clean_per_noisy: 5
+
+bootstrap:
+  n_resamples: 1000
+  ci: 0.95
+
+reliability:
+  method: knn_agreement
+  weight_mode: calibrated
+  hard_threshold: auto
+  weight_power: 2.0
+
+mixture:
+  n_restarts: 5
+  max_iter: 1000
+  n_bins: 5
