@@ -68,3 +68,26 @@ e02909d73a443dbf910b9ce9948bd40961baf156afd82741dac0a132456a6b0d  revision/run_e
 2ee3c3999928891cbc891b7ff13f3be393c1fb44a6839c3f9ba3cb363e16427a  revision/run_final_analysis_set.py
 ee729c9812c217f641b38e97f4e675a67e489ec9d98ffa2e5d6bb0afaa4d1f75  revision/run_granularity_audit.py
 f10997da25359ea93300472004b70ce68ab34b64718e5cd1980616d639282bc1  revision/run_round2.py
+
+## Archived on the AutoDL persistent disk
+
+```
+/root/autodl-tmp/lowdata_backup/canonical-round2-v1.tar.gz   <- AUTHORITATIVE
+    950,948 bytes
+    sha256 034c784973612bf9557fdfee0b625543716ea0fbd60c37da9e65fc9fdbff4468
+    git commit 1acaa3c   schema canonical-round2-v1
+    contains ARCHIVE_PROVENANCE.md, README.md, MANIFEST.sha256.txt,
+             results/revision/round2/ (unified audit CSVs + all derived tables),
+             results/revision/p0_batch/j1_bootstrap_all_proxies.csv,
+             and the ten driver scripts
+    self-checked by `python revision/verify_canonical.py --root .` from an unpack
+
+/root/autodl-tmp/lowdata_backup/round2_results.tar.gz        <- SUPERSEDED
+    241,699 bytes
+    sha256 8898e913f4a73b5fee9380c9dda1a90a33f0dd51dc8182d8a5d6d47610d4e497
+    PRE-CANONICALIZATION snapshot; its limits are listed in the sidecar file
+    round2_results.tar.gz.SUPERSEDED.  Do not use it for reproduction.
+
+/root/autodl-tmp/lowdata_backup/c100s20_traces.tar.gz
+    3,869,261,703 bytes (C100-S20 training traces, 10 runs x 200 epochs)
+```
