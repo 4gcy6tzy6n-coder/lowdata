@@ -755,8 +755,8 @@ All files sit in `results/revision/round2/`, with SHA256 checksums in
 `revision/ROUND2_MANIFEST.md`. The copies there are authoritative.
 
 **Frozen archive.** The whole round-2 asset set is frozen as
-`canonical-round2-v1.tar.gz` (956,061 bytes, SHA256
-`1d0e80603c9053425d53e5cf0e70b6eef9be34d614a535d474b2eaad3ec41acc`), which carries
+`canonical-round2-v1.tar.gz` (956,409 bytes, SHA256
+`1c200b54e22dd943eb753e3f2c8e8a59d44e17286596c1d164e01350fdb6f510`), which carries
 `ARCHIVE_PROVENANCE.md`, `README.md`, an in-archive `MANIFEST.sha256.txt`, every
 audit CSV and derived table, and the ten driver scripts. It replaces the earlier
 `round2_results.tar.gz`, which is retained but sidecar-marked

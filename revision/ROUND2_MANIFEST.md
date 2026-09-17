@@ -73,9 +73,9 @@ f10997da25359ea93300472004b70ce68ab34b64718e5cd1980616d639282bc1  revision/run_r
 
 ```
 /root/autodl-tmp/lowdata_backup/canonical-round2-v1.tar.gz   <- AUTHORITATIVE
-    956,061 bytes
-    sha256 1d0e80603c9053425d53e5cf0e70b6eef9be34d614a535d474b2eaad3ec41acc
-    git 1acaa3c (quantitative content) / 7a6d2fa (docs)   schema canonical-round2-v1
+    956,409 bytes
+    sha256 1c200b54e22dd943eb753e3f2c8e8a59d44e17286596c1d164e01350fdb6f510
+    schema canonical-round2-v1, commits 1acaa3c..ce6bfe2 on main
     contains ARCHIVE_PROVENANCE.md, README.md, MANIFEST.sha256.txt,
              results/revision/round2/ (unified audit CSVs + all derived tables),
              results/revision/p0_batch/j1_bootstrap_all_proxies.csv,
