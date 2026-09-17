@@ -147,8 +147,14 @@ def load_analysis_set() -> pd.DataFrame:
             print(f"   [{name}] missing, skipped")
             continue
         d = pd.read_csv(path)
+        # E1/E4 carry a second Combined variant (`combined_variant ==
+        # "no_neighbor"`) in addition to the separate `combined_noN` detector, and
+        # filtering on the variant alone silently deletes combined_noN as well --
+        # it is one of the six primary detectors and belongs in the set.  Drop the
+        # duplicate variant explicitly instead, by (detector, variant) pair.
         if "combined_variant" in d.columns:
-            d = d[d.combined_variant == "paper"].copy()
+            dup = (d.combined_variant != "paper") & (d.detector != "combined_noN")
+            d = d[~dup].copy()
         d["audit"] = name
         d["audit_seeds"] = n_seeds
         frames.append(d)
@@ -385,11 +391,23 @@ def main() -> None:
     print(f"   wrote final_analysis_set.csv ({len(df)} rows)")
 
     print("\n== multiplicity ==")
-    r_main = multiplicity_table(df, PRIMARY6, "primary-6", "C100-S20")
-    r_main.to_csv(OUT / "multiplicity_primary.csv", index=False)
-    report(r_main, "MAIN: primary-6 (incl. Combined-noN), C100-S20, 10 seeds",
+    # MAIN reporting universe.  Core-5 is the pre-defined cross-audit detector set:
+    # the five continuous detectors present in every audit, one of which is the
+    # paper's Combined.  Combined-noN is a *sensitivity variant* of Combined, so
+    # giving it its own eight families would let one detector contribute twice to
+    # the same correction; it is reported as an extension instead (see the
+    # primary-6 table below and ROUND2_RESULTS.md 5.3).
+    r_core5_s20 = multiplicity_table(df, CORE5, "core-5", "C100-S20")
+    r_core5_s20.to_csv(OUT / "multiplicity_main_core5.csv", index=False)
+    report(r_core5_s20, "MAIN (paper): core-5 detector universe, C100-S20, 10 seeds",
            args.min_effect)
 
+    r_main = multiplicity_table(df, PRIMARY6, "primary-6", "C100-S20")
+    r_main.to_csv(OUT / "multiplicity_primary6.csv", index=False)
+    report(r_main, "SENSITIVITY: primary-6 (adds Combined-noN as its own detectors), "
+                   "C100-S20", args.min_effect)
+
+    r_main.to_csv(OUT / "multiplicity_primary.csv", index=False)
     r_coarse = multiplicity_table(df, PRIMARY6 + COARSE, "primary-6+coarse",
                                  "C100-S20")
     r_coarse.to_csv(OUT / "multiplicity_with_coarse.csv", index=False)
@@ -461,6 +479,26 @@ def main() -> None:
         "signflip_direction": "p = P(mean(s*d) <= mean(d)) for H1 E[d] < 0",
         "pairedt_direction": "ttest_rel(conditioned, global, alternative='greater')",
         "effect_gate_auroc": 0.01,
+        "main_core5_C100-S20": {
+            "detectors": CORE5, "audit": "C100-S20", "n_families": len(r_core5_s20),
+            "attenuation_bh": {t: int(r_core5_s20[f"bh_{t}_significant"].sum())
+                               for t in ("signflip", "wilcoxon", "pairedt")},
+            "attenuation_bonferroni": {t: int(r_core5_s20[f"bonferroni_{t}"].sum())
+                                       for t in ("signflip", "wilcoxon", "pairedt")},
+            "attenuation_bh_and_effect": {t: int((r_core5_s20[f"bh_{t}_significant"]
+                                                  & (r_core5_s20.delta_attenuation >= 0.01)).sum())
+                                          for t in ("signflip", "wilcoxon", "pairedt")},
+            "reversal_bh": int(r_core5_s20.bh_reversal_significant.sum()),
+        },
+        "main_primary6_sensitivity": {
+            "detectors": PRIMARY6, "audit": "C100-S20", "n_families": len(r_main),
+            "attenuation_bh": {t: int(r_main[f"bh_{t}_significant"].sum())
+                               for t in ("signflip", "wilcoxon", "pairedt")},
+            "attenuation_bh_and_effect": {t: int((r_main[f"bh_{t}_significant"]
+                                                  & (r_main.delta_attenuation >= 0.01)).sum())
+                                          for t in ("signflip", "wilcoxon", "pairedt")},
+            "reversal_bh": int(r_main.bh_reversal_significant.sum()),
+        },
         "main": {
             "audit": "C100-S20", "n_families": len(r_main),
             "attenuation_bh_and_effect": {t: int((r_main[f"bh_{t}_significant"]

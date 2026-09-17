@@ -38,13 +38,14 @@ already close to chance.
 | 4 | Two detectors cannot be audited at all (score saturation) | §10 |
 | 5 | The attenuation result survives multiplicity control; the reversal survives it in exactly three families | §5 |
 
-**Statistics.** On the canonical C100-S20 set (primary-6 × 8 proxies, 40 families,
-effect floor |Δ| ≥ 0.01), attenuation is BH-significant in **28/40** families under
-all three tests (exact sign-flip, Wilcoxon, paired t) and **18/40** once the effect
-floor is applied — the same 18 by every test. Reversal is BH-significant in
-**3/40**: `Combined × {knn_agreement, proto_margin}` and `AUM × native_density`.
-On the coupled proxies alone (`label_dependent` + `encoder_derived`, 15 families)
-the core-5 set rejects 15/15 in **all four audits**, including both 5-seed ones.
+**Statistics.** On the canonical C100-S20 set with the pre-defined 40-family
+universe (core-5 detectors × 8 proxies) and a signed effect floor Δ ≥ 0.01,
+attenuation is BH-significant in **28/40** families under all three tests (exact
+sign-flip, Wilcoxon, paired t) and **18/40** once the effect floor is applied — the
+same 18 by every test. Reversal is BH-significant in **3/40**:
+`Combined × {knn_agreement, proto_margin}` and `AUM × native_density`. Summarised
+in §5.3, which also gives the 48-family sensitivity universe that adds
+`Combined-noN` (34/48 → 21/48 → 5/48).
 
 **The strongest single number.** On CIFAR-100N human noise, conditioning on the
 kNN-agreement proxy removes `+0.1501` AUROC (range over five seeds), the largest
@@ -67,7 +68,9 @@ Two decisions were taken afterwards and are authoritative from §5 onward:
 
 Accordingly §5 (multiplicity), §8 (E7/E10) and §9 (E11) have been **recomputed** on
 the canonical set and their numbers supersede anything stated earlier in this
-document for the same quantity. §1–§4a, §6, §7 and §10 are unaffected by either
+document for the same quantity. §5.3 also fixes the reporting universe: the paper's
+statistic is the pre-defined **core-5 / 40-family** set (28/40 → 18/40 → 3/40), and
+the 48-family `Combined-noN` variant is a labelled sensitivity. §1–§4a, §6, §7 and §10 are unaffected by either
 decision: none of them pools detectors across tiers, and none reads a coverage
 column. `run_e10_weak_detector.py` and `run_e11_variance.py` now load
 `final_analysis_set.csv` rather than the per-audit CSVs, so the tier filter and the
@@ -349,11 +352,12 @@ exist to make visible.
 | **coarse secondary** | Forgetting | 110–129 distinct values, tie rate ~1%; reported separately, never pooled |
 | excluded | `neighbor` | 11–18 distinct values, tie rate 9–26%, pairwise AUROC lands on exactly 0.5000 |
 
-The frozen S20 audit predates `combined_noN`, so cross-audit comparisons use the
-**core-5** that all four audits actually contain (EMA Loss, Confidence, AUM, CL,
-Combined); `combined_noN` is reported as an extension where it exists. Also note
-that Forgetting's S20 global AUROC is 0.3305 — below chance — so it is ineligible
-for a reversal claim there regardless of its resolution.
+The frozen S20 audit predates `combined_noN`, so cross-audit comparisons — and the
+multiplicity universe — use the **core-5** that all four audits actually contain
+(EMA Loss, Confidence, AUM, CL, Combined). `combined_noN` is an extension, present
+in three of the four audits and reported as a sensitivity variant in §5.3. Also
+note that Forgetting's S20 global AUROC is 0.3305 — below chance — so it is
+ineligible for a reversal claim there regardless of its resolution.
 
 ### 5.3 Corrected multiplicity tests
 
@@ -370,15 +374,34 @@ The old sign-flip rejected families whose Δ was *positive* and returned p = 1 f
 families whose Δ was uniformly negative — exactly inverted, which is why it
 reported 0/48. With the direction fixed, all three tests now agree.
 
-**Main table (C100-S20, 10 seeds, primary-6 × 8 proxies = 40 families).** An
-effect floor of **Δ ≥ 0.01 (signed)** is applied on top of BH, because these are
-one-sided tests of E[Δ] = 0 and a family whose attenuation is uniformly +0.001
-across ten seeds rejects at the floor p = 2⁻¹⁰. The floor is signed, not
-`|Δ| ≥ 0.01`: attenuation is Δ > 0, so a family with a large *negative* Δ is
-evidence against the effect. Taking the absolute value would have admitted three
-such families — `AUM × dino_density`, `AUM × dino_knndist` and
-`AUM × dino_density_fullpool`, all at Δ ≈ −0.027 with **0 of 10** seeds
-attenuating — and would have reported them as findings:
+**The reporting universe.** Multiplicity needs a family count fixed *before* the
+tests, and the honest choice is the pre-defined cross-audit detector set: the
+**core-5** continuous detectors that every audit contains — EMA Loss, Confidence,
+AUM, CL and the paper's Combined. `Combined-noN` is a *sensitivity variant of
+Combined*, not an independent detector family, so giving it its own eight families
+would let one detector contribute twice to the same correction. It is reported
+separately as an extension.
+
+| universe | detectors | families | attenuation BH | + Δ ≥ 0.01 | reversal BH |
+|---|---|---|---|---|---|
+| **core-5 (paper)** | EMA Loss, Confidence, AUM, CL, Combined | **40** | **28 / 40** | **18 / 40** | **3 / 40** |
+| primary-6 (sensitivity) | the above + Combined-noN | 48 | 34 / 48 | 21 / 48 | 5 / 48 |
+
+`multiplicity_main_core5.csv` is the paper's table; `multiplicity_primary6.csv` is
+the sensitivity version. Both use the same pipeline, so the difference is purely
+the universe. Note that the extra 8 families in the 48-family version are all real
+`Combined-noN` results — in particular `Combined-noN × knn_agreement` (A_cond
+0.39005, Δ 0.17871) and `Combined-noN × proto_margin` (A_cond 0.42576, Δ 0.14300)
+do reverse, which is §1's decoupling result seen through the multiplicity lens.
+
+**Main table (core-5, 40 families).** An effect floor of **Δ ≥ 0.01 (signed)** is
+applied on top of BH, because these are one-sided tests of E[Δ] = 0 and a family
+whose attenuation is uniformly +0.001 across ten seeds rejects at the floor
+p = 2⁻¹⁰. The floor is signed, not `|Δ| ≥ 0.01`: attenuation is Δ > 0, so a family
+with a large *negative* Δ is evidence against the effect. Taking the absolute value
+would have admitted three such families — `AUM × dino_density`,
+`AUM × dino_knndist` and `AUM × dino_density_fullpool`, all at Δ ≈ −0.027 with
+**0 of 10** seeds attenuating — and would have reported them as findings:
 
 | test | BH-significant | Bonferroni | BH **and** Δ ≥ 0.01 |
 |---|---|---|---|
@@ -403,9 +426,8 @@ The label-free column is worth reading carefully, because it is *not* an artefac
 those 13 families have a **positive** mean Δ (+0.0011 to +0.0127, with 9–10 of 10
 seeds agreeing in sign), i.e. a real but ~20× smaller attenuation than the coupled
 proxies. The effect floor is what removes them, not the direction guard. The pooled
-`label_free` mean of −0.0007 in the last table is *not* in tension with this: it
-averages the positive `dino_*` offsets together with the `random` control, which
-has essentially none.
+`label_free` mean of −0.0007 is *not* in tension with this: it averages the positive
+`dino_*` offsets together with the `random` control, which has essentially none.
 
 The three BH-significant, effect-gated reversals are:
 
@@ -434,9 +456,20 @@ rate.
 The two new S20 audits reproduce the frozen one exactly, which is a useful
 end-to-end check of the rewritten driver.
 
-Restricting the family set to the label-carrying proxies
-(`label_dependent` + `encoder_derived`, 15 families per audit) makes the n = 5
-audits work:
+**What the small-n audits can and cannot support.** The exact sign-flip floor is
+2⁻ⁿ, and BH's *largest* threshold is q itself (at k = m), so the test can reject at
+n = 5 — it needs k* = ⌈m·2⁻ⁿ/q⌉ families sitting exactly on the floor, i.e. 25 of 40
+at the full universe. What n = 5 can never do is produce p < 0.031, so it can never
+survive a Bonferroni correction at any family count. That is why the A40 row shows
+0/40 for sign-flip and Wilcoxon but 10/40 for paired t: with 5 seeds the mean-based
+exact tests are floor-limited while the variance-based t-test is not. **For
+C100-A40 and C100N-human the paired t-test is the only test that can reject at the
+full 40-family count.** This is a property of n = 5, not of the effect, and it
+belongs in the manuscript rather than in a referee's report.
+
+**Sensitivity only — do not put this in the abstract.** Restricting the family set
+to the fifteen label-carrying proxies (`label_dependent` + `encoder_derived`) makes
+the exact tests pass 15/15 in all four audits:
 
 | audit | m | sign-flip | Wilcoxon | paired t | reversal |
 |---|---|---|---|---|---|
@@ -445,21 +478,17 @@ audits work:
 | C100N-human | 15 | 15 / 15 | 15 / 15 | 15 / 15 | 0 |
 | C100-A40 | 15 | 11 / 15 | 11 / 15 | 11 / 15 | 0 |
 
-**What the small-n audits can and cannot support.** The exact sign-flip floor is
-2⁻ⁿ, and BH's *largest* threshold is q itself (at k = m), so the test can reject at
-n = 5 — it needs k* = ⌈m·2⁻ⁿ/q⌉ families sitting exactly on the floor, i.e. 10 of
-15 for the coupled set, which is what A40 and C100N reach. What n = 5 can never do
-is produce p < 0.031, so it can never survive a Bonferroni correction at any family
-count. That is why the A40 core-5 row shows 0/40 for sign-flip and Wilcoxon but
-10/40 for paired t: with 5 seeds the mean-based exact tests are floor-limited while
-the variance-based t-test is not. **For C100-A40 and C100N-human the paired t-test
-is the only test that can reject at the full 40-family count, and the
-coupled-proxy restriction is what makes the exact tests usable.** Both facts are
-stated in the manuscript rather than left for a referee to find.
+This is a *post-hoc family restriction* — it is chosen after observing that the
+label-free and control proxies are nulls — so it must be reported as a
+supplementary sensitivity analysis, never as the headline. The paper's statistic is
+the pre-defined 40-family universe with the signed effect floor:
+**28 / 40 → 18 / 40, and 3 / 40 reversal.**
 
-An earlier version of this section reported 34/48 for Wilcoxon and paired t, 0/48
-for the sign-flip, and a 48-family set that double-counted `combined` against
-`combined_noN`. All of those numbers are superseded.
+An earlier version of this section reported 34/48 for Wilcoxon and paired t and
+0/48 for the sign-flip, and its 48-family set silently contained a duplicate
+`Combined` variant. Those numbers are superseded: the 48-family figure is now
+labelled for what it is (a sensitivity universe that adds `Combined-noN`), and the
+paper's universe is core-5's 40.
 
 ---
 
@@ -549,11 +578,11 @@ Three things to note.
 weak detector?
 
 **E10 (`revision/run_e10_weak_detector.py`).** Reads the canonical
-`final_analysis_set.csv` with excluded detectors removed, giving 1,320 cells across
+`final_analysis_set.csv` with excluded detectors removed, giving 1,440 cells across
 the four audits. A leave-one-detector-out prediction — estimate Δ from the family's
 *other* detectors, then predict reversal from `A_global − Δ_LOO < 0.5` — agrees with
-the observed interval reversal in **96.2%** of cells (TP = 3, FP = 2, FN = 5,
-TN = 174). The old 168-cell figure of 94.0% and this 96.2% are not directly
+the observed interval reversal in **96.5%** of cells (TP = 6, FP = 2, FN = 5,
+TN = 187). The old 168-cell figure of 94.0% and this 96.2% are not directly
 comparable, and the difference is *not* mainly about `neighbor`: the earlier run
 pooled only (dataset, proxy, detector) cells that survived the eligibility gate in
 each audit, and it predates both `combined_noN` in the S20/A40 audits and the
@@ -578,13 +607,13 @@ detectors — which is exactly §9's finding that reversal lives at the (proxy,
 detector) pair, not at the family.
 
 **E7 (strength bins).** Δ does not shrink as the detector gets stronger, and
-reversal vanishes. Recomputed on the canonical set (1,320 cells, `neighbor`
+reversal vanishes. Recomputed on the canonical set (1,440 cells, `neighbor`
 excluded, `forgetting` present only where eligible):
 
 | strength bin | label-dependent Δ | reversal | label-free Δ | reversal |
 |---|---|---|---|---|
-| [0.50, 0.60) | +0.0904 | 15 / 40 | −0.0002 | 0 / 80 |
-| [0.60, 0.70) | +0.1613 | 35 / 92 | +0.0089 | 0 / 184 |
+| [0.50, 0.60) | +0.1139 | 35 / 60 | +0.0011 | 0 / 120 |
+| [0.60, 0.70) | +0.1528 | 35 / 102 | +0.0083 | 0 / 204 |
 | [0.70, 0.80) | +0.1260 | 7 / 118 | −0.0047 | 0 / 236 |
 | [0.80, 1.00] | **+0.1801** | **0 / 80** | +0.0029 | 0 / 160 |
 
@@ -599,8 +628,8 @@ cleanest single refutation of "reversal is a stronger version of the effect".
 *(proxy, detector)* pair?
 
 **Configuration.** Canonical `final_analysis_set.csv` with excluded detectors
-removed: 1,320 pooled cells carrying interval verdicts, 57 of them reversals
-(4.32%). Two binomial GLMs fitted by IRLS: `strength + proxy` versus
+removed: 1,440 pooled cells carrying interval verdicts, 84 of them reversals
+(5.83%). Two binomial GLMs fitted by IRLS: `strength + proxy` versus
 `strength + proxy + detector`. The likelihood-ratio statistic for the detector term
 is calibrated against a permutation null that shuffles detector labels **within each
 proxy**, preserving all family-level structure (2,000 draws).
@@ -609,20 +638,23 @@ proxy**, preserving all family-level structure (2,000 draws).
 
 | model | log-lik | k |
 |---|---|---|
-| strength + family | −135.30 | 5 |
-| strength + proxy | −131.81 | 9 |
-| strength + proxy + detector | −43.54 | 15 |
+| strength + family | −170.14 | 5 |
+| strength + proxy | −166.96 | 9 |
+| strength + proxy + detector | −55.48 | 15 |
 
-* LR(detector \| proxy) = **176.54** on 6 df; permutation null mean **6.5**;
+* LR(detector \| proxy) = **222.96** on 6 df; permutation null mean **6.4**;
   permutation p < 1/2000.
-* LR(proxy \| family) = 6.98 on 4 df.
+* LR(proxy \| family) = 6.36 on 4 df.
 
-Detector identity adds overwhelmingly more than proxy identity — and removing
-`neighbor` *increases* the statistic from 165.39 to 176.54, so the pairing effect was
-never carried by the degenerate detector. Reversal rate by proxy × detector makes
-the same point without a model: `knn_agreement` reverses 0.667 of the time for
-`combined` and 0.000 for every other primary detector; `proto_margin` reverses 0.733
-for `combined` and 0.167 for each of `confidence`, `CL` and `EMA Loss`.
+Detector identity adds overwhelmingly more than proxy identity — and dropping the
+saturating `neighbor` detector *raises* the statistic (165.39 in the pre-canonical
+run → 222.96 here), so the pairing effect was never carried by the degenerate
+detector. Reversal rate by proxy × detector makes the same point without a model:
+`knn_agreement` reverses 0.667 of the time for `combined`, 0.50 for
+`combined_noN`, and 0.000 for every other detector; `proto_margin` reverses 0.733
+for `combined`, 0.50 for `combined_noN` and 0.167 for each of `confidence`, `CL`
+and `EMA Loss`. Note that `native_density` reverses 0.35 for `combined_noN` — a
+weak detector with a large conditioned drop.
 
 The strength-bin view confirms the same concentration: `proto_margin` reverses 0.75
 in the [0.50,0.60) bin, 0.413 in [0.60,0.70), 0.051 in [0.70,0.80) and **0.000** in
