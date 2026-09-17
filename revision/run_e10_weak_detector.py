@@ -34,25 +34,20 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "results" / "revision" / "round2"
 
-SOURCES = {
-    "C100-S20": OUT / "e1_combined_noN.csv",
-    "C100-A40": OUT / "e4_a40_audit.csv",
-    "C100N-human": OUT / "e9_c100n_audit.csv",
-    "C100-S20-frozen": ROOT / "results" / "revision" / "p0_batch" / "j1_bootstrap_all_proxies.csv",
-}
+# The canonical pooled table written by run_final_analysis_set.py.  Analysis reads
+# it rather than the per-audit CSVs so the detector tiers and the coverage schema
+# are applied in exactly one place.
+ANALYSIS_SET = OUT / "final_analysis_set.csv"
+EXCLUDED_TIERS = ("excluded",)     # neighbor: saturating score resolution
 
 
-def _load(path: Path, name: str) -> pd.DataFrame | None:
-    if not path.exists():
-        print(f"   [{name}] missing: {path}")
-        return None
-    d = pd.read_csv(path)
-    if "combined_variant" in d.columns and name.endswith("frozen"):
-        d = d[d.combined_variant == "paper"]
+def load() -> pd.DataFrame:
+    if not ANALYSIS_SET.exists():
+        raise SystemExit(f"missing {ANALYSIS_SET}; run run_final_analysis_set.py first")
+    d = pd.read_csv(ANALYSIS_SET)
+    d = d[~d.detector_tier.isin(EXCLUDED_TIERS)].copy()
     d = d[d.global_auc >= 0.5].copy()
-    if not len(d):
-        return None
-    d["dataset"] = name
+    d["dataset"] = d.audit
     return d
 
 
@@ -61,8 +56,7 @@ def main() -> None:
     ap.add_argument("--out", default="e10_weak_detector_account.csv")
     args = ap.parse_args()
 
-    frames = [f for f in (_load(p, n) for n, p in SOURCES.items()) if f is not None]
-    df = pd.concat(frames, ignore_index=True)
+    df = load()
     # Rows without a bootstrap CI carry no interval-reversal verdict.
     has_boot = df.interval_reversal.notna()
     print(f"== e10: {len(df)} cells from {df.dataset.nunique()} audits, "

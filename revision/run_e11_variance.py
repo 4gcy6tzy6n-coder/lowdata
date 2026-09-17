@@ -28,26 +28,23 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "results" / "revision" / "round2"
 
-SOURCES = {
-    "C100-S20": OUT / "e1_combined_noN.csv",
-    "C100-A40": OUT / "e4_a40_audit.csv",
-    "C100-S20-frozen": ROOT / "results" / "revision" / "p0_batch" / "j1_bootstrap_all_proxies.csv",
-}
+ANALYSIS_SET = OUT / "final_analysis_set.csv"
+EXCLUDED_TIERS = ("excluded",)     # neighbor: saturating score resolution
 
 
 def load() -> pd.DataFrame:
-    frames = []
-    for name, path in SOURCES.items():
-        if not path.exists():
-            print(f"   [{name}] missing")
-            continue
-        d = pd.read_csv(path)
-        if "combined_variant" in d.columns:
-            d = d[d.combined_variant == "paper"]
-        d = d[(d.global_auc >= 0.5) & d.interval_reversal.notna()].copy()
-        d["dataset"] = name
-        frames.append(d)
-    return pd.concat(frames, ignore_index=True)
+    """Canonical pooled table, excluded detectors removed.
+
+    Reading final_analysis_set.csv instead of the per-audit CSVs keeps the
+    detector-tier decision and the coverage schema in one place.
+    """
+    if not ANALYSIS_SET.exists():
+        raise SystemExit(f"missing {ANALYSIS_SET}; run run_final_analysis_set.py first")
+    d = pd.read_csv(ANALYSIS_SET)
+    d = d[~d.detector_tier.isin(EXCLUDED_TIERS)].copy()
+    d = d[(d.global_auc >= 0.5) & d.interval_reversal.notna()].copy()
+    d["dataset"] = d.audit
+    return d
 
 
 def design(df: pd.DataFrame, terms: list[str]) -> np.ndarray:

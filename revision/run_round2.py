@@ -12,7 +12,6 @@ conditioning.
   e2  order            randomised processing order of the corrupted examples
   e3  replacement      clean pool reusable instead of consumed
   e4  a40              full audit on C100-A40 (39.8% asymmetric noise, 5 seeds)
-  e5  fdr              48 detector x proxy families, exact sign-flip test, BH-FDR
   e6  sim              Gaussian simulation, 100 repeats, empirical vs analytic
                        crossing threshold
   e7  strength         reversal rate vs detector strength (no new computation)
@@ -22,12 +21,12 @@ Usage
 -----
     python run_round2.py --job e1 --B 1000 --workers 24
     python run_round2.py --job e2 --reps 100 --workers 24
-    python run_round2.py --job e5 --workers 1        # analysis only
+    # e5 (multiplicity) moved to run_final_analysis_set.py; the version that
+    # lived here had two one-sided direction bugs, see ROUND2_RESULTS.md 5.3.
 """
 from __future__ import annotations
 
 import argparse
-import itertools
 import json
 import multiprocessing as mp
 import os
@@ -333,7 +332,7 @@ def run_pooled(tasks, worker, workers, out_csv, label):
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--job", required=True,
-                    choices=["e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8", "all"])
+                    choices=["e1", "e2", "e3", "e4", "e6", "e7", "e8", "all"])
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 4) - 1))
     ap.add_argument("--B", type=int, default=1000)
     ap.add_argument("--reps", type=int, default=100)
@@ -347,7 +346,7 @@ def main() -> None:
     args = ap.parse_args()
 
     OUT.mkdir(parents=True, exist_ok=True)
-    jobs = ["e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8"] if args.job == "all" else [args.job]
+    jobs = ["e1", "e2", "e3", "e4", "e6", "e7", "e8"] if args.job == "all" else [args.job]
 
     for job in jobs:
         if job == "e1":
@@ -390,8 +389,6 @@ def main() -> None:
                             OUT / "e4_a40_audit.csv", "e4")
             summarise_e1(df, setting="C100-A40")
 
-        elif job == "e5":
-            analyse_fdr()
         elif job == "e6":
             run_simulation(args)
         elif job == "e7":
@@ -441,158 +438,6 @@ def summarise_e23(df: pd.DataFrame) -> None:
               c_pipe=("coverage_pipeline_order", "mean"),
               c_wr=("coverage_with_replacement", "mean")).reset_index())
     print(p.round(4).to_string(index=False))
-
-
-def analyse_fdr() -> None:
-    """48 detector x proxy families, exact tests on ten paired seeds, BH-FDR.
-
-    Two distinct claims are tested, and they must not be conflated:
-
-    * attenuation -- H0: E[delta_total] >= 0 against H1: E[delta_total] < 0, where
-      delta_total = AUC_global - AUC_conditioned.  This is the paper's main
-      effect and it is what needs multiplicity control.
-    * reversal -- H0: E[conditioned AUC] >= 0.5 against H1: < 0.5.  Only a handful
-      of families can even express this, since most conditioned AUCs sit between
-      0.6 and 0.83.
-
-    Testing the reversal null across all 48 families, as an earlier version of
-    this analysis did, is uninformative: it rejects "AUC differs from chance" for
-    well-performing detectors, which is not a finding.
-
-    Three exact tests are reported per family so the conclusion does not hinge on
-    one of them: sign-flip on the mean (exact over 2^10 sign configurations),
-    Wilcoxon signed-rank (exact), and the paired t-test.  BH step-up at q = 0.05
-    is applied to each family of p-values separately.
-    """
-    from scipy import stats
-
-    src = OUT / "e1_combined_noN.csv"
-    if not src.exists():
-        src = ROOT / "results" / "revision" / "p0_batch" / "j1_bootstrap_all_proxies.csv"
-    df = pd.read_csv(src)
-    if "combined_variant" in df.columns:
-        df = df[df.combined_variant == "paper"]
-    df = df[df.global_auc >= GLOBAL_AUC_MIN]
-
-    sign_cache: dict[int, np.ndarray] = {}
-
-    def sign_flip_p(d: np.ndarray) -> float:
-        n = len(d)
-        if n == 0:
-            return float("nan")
-        if n not in sign_cache:
-            sign_cache[n] = np.array(list(itertools.product([1, -1], repeat=n)), dtype=float)
-        null = (sign_cache[n] * d).mean(axis=1)
-        obs = float(d.mean())
-        return float(np.mean(null <= obs))
-
-    rows = []
-    for (det, px), g in df.groupby(["detector", "proxy"]):
-        d_atten = (g.global_auc - g.conditioned_auc).to_numpy(dtype=float)
-        d_atten = d_atten[np.isfinite(d_atten)]
-        d_rev = (g.conditioned_auc - 0.5).to_numpy(dtype=float)
-        d_rev = d_rev[np.isfinite(d_rev)]
-        n = len(d_atten)
-        if n == 0:
-            continue
-        p_atten = sign_flip_p(d_atten)
-        try:
-            p_wilcox = float(stats.wilcoxon(d_atten, alternative="greater").pvalue)
-        except ValueError:
-            p_wilcox = float("nan")
-        p_t = float(stats.ttest_rel(g.global_auc, g.conditioned_auc,
-                                    alternative="greater").pvalue)
-        p_rev = sign_flip_p(d_rev) if len(d_rev) else float("nan")
-        rows.append({
-            "detector": det, "proxy": px, "proxy_family": PROXY_FAMILY.get(px, "?"),
-            "n_seeds": n,
-            "mean_global_auc": float(g.global_auc.mean()),
-            "mean_conditioned_auc": float(g.conditioned_auc.mean()),
-            "mean_delta_attenuation": float(d_atten.mean()),
-            "sd_delta_attenuation": float(d_atten.std(ddof=1)) if n > 1 else float("nan"),
-            "n_seeds_attenuated": int((d_atten > 0).sum()),
-            "p_signflip_attenuation": p_atten,
-            "p_wilcoxon_attenuation": p_wilcox,
-            "p_paired_t_attenuation": p_t,
-            "p_signflip_reversal": p_rev,
-        })
-
-    r = pd.DataFrame(rows)
-
-    def bh(pvals: pd.Series) -> tuple[np.ndarray, float]:
-        order = np.argsort(pvals.to_numpy())
-        m = len(pvals)
-        crit = 0.05 * (np.arange(1, m + 1)) / m
-        passed = pvals.to_numpy()[order] <= crit
-        k = int(np.max(np.arange(1, m + 1)[passed])) if passed.any() else 0
-        sig = np.zeros(m, dtype=bool)
-        if k:
-            sig[order[:k]] = True
-        return sig, k
-
-    m = len(r)
-    # A one-sided rejection is only interpretable when the point estimate agrees
-    # with the direction being tested.  Without this guard a family whose delta is
-    # essentially zero can clear a tiny p-value purely because its seed-to-seed
-    # spread is tiny, and a family whose delta runs the other way can be reported
-    # as "significant attenuation" -- which is exactly what an earlier version of
-    # this analysis did.  The guard is recorded as a column so the excluded
-    # families remain visible.
-    atten_dir = (r.mean_delta_attenuation > 0).to_numpy()
-    rev_dir = (r.mean_conditioned_auc < 0.5).to_numpy()
-    r["direction_consistent_attenuation"] = atten_dir
-    r["direction_consistent_reversal"] = rev_dir
-
-    for col, tag, dirmask in (("p_signflip_attenuation", "signflip", atten_dir),
-                              ("p_wilcoxon_attenuation", "wilcoxon", atten_dir),
-                              ("p_paired_t_attenuation", "pairedt", atten_dir),
-                              ("p_signflip_reversal", "reversal", rev_dir)):
-        pv = r[col].copy()
-        pv[~dirmask] = 1.0          # direction-inconsistent families cannot reject
-        sig, k = bh(pv)
-        r[f"bh_{tag}_significant"] = sig
-        r[f"bh_{tag}_k"] = k
-        r[f"bonferroni_{tag}"] = (r[col] <= 0.05 / m) & dirmask
-
-    r = r.sort_values("p_signflip_attenuation").reset_index(drop=True)
-    r.to_csv(OUT / "e5_fdr.csv", index=False)
-
-    print(f"\n== e5: BH-FDR over {m} detector x proxy families, exact sign-flip (2^10) ==")
-    print("  ATTENUATION  H1: E[AUC_global - AUC_cond] < 0")
-    for tag in ("signflip", "wilcoxon", "pairedt"):
-        print(f"    {tag:9s} BH-significant (q=0.05): {int(r[f'bh_{tag}_significant'].sum())}/{m}"
-              f"   Bonferroni: {int(r[f'bonferroni_{tag}'].sum())}/{m}"
-              f"   step-up k={int(r[f'bh_{tag}_k'].iloc[0])}")
-    print("  REVERSAL     H1: E[AUC_cond - 0.5] < 0")
-    print(f"    signflip  BH-significant: {int(r.bh_reversal_significant.sum())}/{m}"
-          f"   raw p<0.05: {int((r.p_signflip_reversal < 0.05).sum())}")
-    print(f"  direction-consistent families: attenuation "
-          f"{int(r.direction_consistent_attenuation.sum())}/{m}, "
-          f"reversal {int(r.direction_consistent_reversal.sum())}/{m}")
-    print("\n  families with BH-significant attenuation (sign-flip):")
-    sig = r[r.bh_signflip_significant]
-    if len(sig):
-        print(sig[["detector", "proxy", "mean_global_auc", "mean_conditioned_auc",
-                   "mean_delta_attenuation", "n_seeds_attenuated",
-                   "p_signflip_attenuation"]].round(5).to_string(index=False))
-    else:
-        print("    none")
-    print("\n  reversal families (raw p < 0.05, sign-flip):")
-    rev = r[r.p_signflip_reversal < 0.05]
-    print(rev[["detector", "proxy", "mean_conditioned_auc",
-               "p_signflip_reversal"]].round(5).to_string(index=False) if len(rev) else "    none")
-
-    json.dump({
-        "n_families": m,
-        "attenuation_bh_significant": {
-            tag: int(r[f"bh_{tag}_significant"].sum())
-            for tag in ("signflip", "wilcoxon", "pairedt")},
-        "attenuation_bonferroni": {
-            tag: int(r[f"bonferroni_{tag}"].sum())
-            for tag in ("signflip", "wilcoxon", "pairedt")},
-        "reversal_bh_significant": int(r.bh_reversal_significant.sum()),
-        "reversal_raw_p05": int((r.p_signflip_reversal < 0.05).sum()),
-    }, open(OUT / "e5_fdr_summary.json", "w"), indent=2)
 
 
 def analyse_strength() -> None:
