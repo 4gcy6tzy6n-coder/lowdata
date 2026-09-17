@@ -754,6 +754,20 @@ the structural reason that human-noise training is too accurate.
 All files sit in `results/revision/round2/`, with SHA256 checksums in
 `revision/ROUND2_MANIFEST.md`. The copies there are authoritative.
 
+**Frozen archive.** The whole round-2 asset set is frozen as
+`canonical-round2-v1.tar.gz` (956,061 bytes, SHA256
+`1d0e80603c9053425d53e5cf0e70b6eef9be34d614a535d474b2eaad3ec41acc`), which carries
+`ARCHIVE_PROVENANCE.md`, `README.md`, an in-archive `MANIFEST.sha256.txt`, every
+audit CSV and derived table, and the ten driver scripts. It replaces the earlier
+`round2_results.tar.gz`, which is retained but sidecar-marked
+`SUPERSEDED / PRE-CANONICALIZATION` because it reproduces the pre-fix multiplicity
+table and the pre-unification coverage schema. Unpack and self-check with
+
+```bash
+tar xzf canonical-round2-v1.tar.gz && cd canonical-round2-v1
+python revision/verify_canonical.py --root .   # independent, does not import the producer
+```
+
 **One coverage schema.** The earlier dual convention (`noisy_coverage` meaning
 support coverage in E1/E4 but matched coverage in E9) is gone. All four audits now
 carry all four canonical columns — `common_noisy_coverage`, `common_clean_coverage`,
